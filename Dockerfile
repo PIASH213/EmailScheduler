@@ -5,17 +5,14 @@ FROM eclipse-temurin:17-jre
 WORKDIR /app
 
 # Copy your libraries (JavaMail, Gson) into /app/lib
-COPY lib/ /app/lib/
+COPY lib/*.jar ./lib/
 
-# Copy your “fat” JAR into /app/app.jar
-COPY out/artifacts/EmailSchedulerGUI_jar/EmailSchedulerGUI.jar /app/app.jar
+# Copy your application JAR
+COPY out/artifacts/EmailSchedulerGUI_jar/EmailSchedulerGUI.jar ./app.jar
 
-# Expose any ports if you had a web server (not needed here)
-# EXPOSE 8080
+# Copy data files
+COPY schedules.json .
+COPY email_logs.txt .
 
-# Let the container pick up your env‑vars at runtime
-ENV EMAIL_USERNAME=$EMAIL_USERNAME
-ENV EMAIL_PASSWORD=$EMAIL_PASSWORD
-
-# Command to run your worker
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Command to run with classpath support and Render's PORT
+CMD ["java", "-cp", "app.jar:lib/*", "com.emailscheduler.WorkerMain"]
