@@ -1,11 +1,9 @@
 package com.emailscheduler;
 
-import com.sun.net.httpserver.HttpServer;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.InetSocketAddress;
+import java.io.*;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.List;
-import java.util.Properties;
 
 public class WorkerMain {
     public static void main(String[] args) throws Exception {
@@ -26,11 +24,15 @@ public class WorkerMain {
         List<Schedule> all = ScheduleManager.loadSchedules();
         System.out.println("Loaded " + all.size() + " schedules");
         for (Schedule sch : all) {
-            Scheduler.scheduleEmail(sender, sch);
-            System.out.println("Rescheduled: " + sch.getRecipient() + " at " + sch.getTime());
+            if (sch.getTime().isAfter(java.time.LocalDateTime.now())) {
+                Scheduler.scheduleEmail(sender, sch);
+                System.out.println("Rescheduled: " + sch.getRecipient() + " at " + sch.getTime());
+            } else {
+                System.out.println("Skipping past schedule: " + sch.getRecipient() + " at " + sch.getTime());
+            }
         }
 
-        // 4) Start health check server
+        // 4) Start health check server in a separate thread
         startHealthCheckServer();
 
         // 5) Keep the JVM alive
@@ -38,22 +40,30 @@ public class WorkerMain {
     }
 
     private static void startHealthCheckServer() {
-        try {
+        new Thread(() -> {
             int port = getServerPort();
-            HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
-            server.createContext("/", exchange -> {
-                String response = "Email Scheduler Running";
-                exchange.sendResponseHeaders(200, response.length());
-                try (OutputStream os = exchange.getResponseBody()) {
-                    os.write(response.getBytes());
+            try (ServerSocket serverSocket = new ServerSocket(port)) {
+                System.out.println("Health check server running on port " + port);
+                
+                while (true) {
+                    try (Socket clientSocket = serverSocket.accept();
+                         PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true)) {
+                        
+                        // Simple HTTP response
+                        out.println("HTTP/1.1 200 OK");
+                        out.println("Content-Type: text/plain");
+                        out.println("Connection: close");
+                        out.println();
+                        out.println("Email Scheduler Running");
+                    } catch (IOException e) {
+                        System.err.println("Client handling error: " + e.getMessage());
+                    }
                 }
-            });
-            server.setExecutor(null);
-            server.start();
-            System.out.println("Health check server running on port " + port);
-        } catch (Exception e) {
-            System.err.println("Failed to start health check server: " + e.getMessage());
-        }
+            } catch (IOException e) {
+                System.err.println("Failed to start health check server: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }).start();
     }
 
     private static int getServerPort() {
