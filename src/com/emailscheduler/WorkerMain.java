@@ -1,6 +1,7 @@
 package com.emailscheduler;
 
 import java.io.*;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -21,7 +22,7 @@ public class WorkerMain {
         EmailSender sender = new EmailSender(user, pass);
         System.out.println("Email sender initialized");
 
-        // 3) Load and reschedule emails - handle null case
+        // 3) Load and reschedule emails
         List<Schedule> allSchedules = loadSchedulesSafe();
         System.out.println("Loaded " + allSchedules.size() + " schedules");
         
@@ -34,11 +35,10 @@ public class WorkerMain {
             }
         }
 
-        // 4) Start health check server
+        // 4) Start health check server (blocking call)
         startHealthCheckServer();
 
-        // 5) Keep the JVM alive
-        Thread.currentThread().join();
+        // 5) The JVM will stay alive while health server is running
     }
 
     private static List<Schedule> loadSchedulesSafe() {
@@ -52,28 +52,32 @@ public class WorkerMain {
     }
 
     private static void startHealthCheckServer() {
-        new Thread(() -> {
-            int port = getServerPort();
-            try (ServerSocket serverSocket = new ServerSocket(port)) {
-                System.out.println("Health check server running on port " + port);
-                
-                while (true) {
-                    try (Socket clientSocket = serverSocket.accept();
-                         PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true)) {
-                        
+        int port = getServerPort();
+        try (ServerSocket serverSocket = new ServerSocket(port, 0, InetAddress.getByName("0.0.0.0"))) {
+            System.out.println("✅ Health check server running on 0.0.0.0:" + port);
+            
+            while (true) {
+                try (Socket clientSocket = serverSocket.accept();
+                     BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                     PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true)) {
+                    
+                    // Read request (we only care about the first line for health checks)
+                    String request = in.readLine();
+                    if (request != null && request.startsWith("GET")) {
                         out.println("HTTP/1.1 200 OK");
                         out.println("Content-Type: text/plain");
                         out.println("Connection: close");
                         out.println();
                         out.println("Email Scheduler Running");
-                    } catch (IOException e) {
-                        System.err.println("Client error: " + e.getMessage());
                     }
+                } catch (IOException e) {
+                    System.err.println("Client error: " + e.getMessage());
                 }
-            } catch (IOException e) {
-                System.err.println("Failed to start health server: " + e.getMessage());
             }
-        }).start();
+        } catch (IOException e) {
+            System.err.println("❌ Failed to start health server: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     private static int getServerPort() {
@@ -82,9 +86,9 @@ public class WorkerMain {
             try {
                 return Integer.parseInt(port);
             } catch (NumberFormatException e) {
-                System.err.println("Invalid PORT: " + port);
+                System.err.println("Invalid PORT value: " + port + ", using default 10000");
             }
         }
-        return 8080;
+        return 10000; // Render's default port
     }
 }
