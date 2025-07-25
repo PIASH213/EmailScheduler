@@ -1,0 +1,2 @@
+[2025-05-10 21:27:05] hamidpiash2002@gmail.com | To: hamidpiash6@gmail.com | Subject: Test3 | Status: SUCCESS
+[2025-07-24 17:55:07] hamidpiash2002@gmail.com | To: abdulhamidpiash@gmail.com | Subject: For test the EmailScheduler. | Status: SUCCESS

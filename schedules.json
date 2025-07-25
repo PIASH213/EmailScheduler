@@ -1,0 +1,32 @@
+[
+  {
+    "recipient": "hamidpiash6@gmail.com",
+    "subject": "Test",
+    "body": "Body",
+    "time": "2025-05-10 09:09 PM"
+  },
+  {
+    "recipient": "hamidpiash6@gmail.com",
+    "subject": "TestTest",
+    "body": "Body\nBody",
+    "time": "2025-05-10 09:21 PM"
+  },
+  {
+    "recipient": "hamidpiash6@gmail.com",
+    "subject": "Test3",
+    "body": "Body#",
+    "time": "2025-05-10 09:27 PM"
+  },
+  {
+    "recipient": "abdulhamidpiash@gmail.com",
+    "subject": "For test the EmailScheduler.",
+    "body": "It running properly by Java.",
+    "time": "2025-07-24 05:55 PM"
+  },
+  {
+    "recipient": "abdulhamidpiash@gmail.com",
+    "subject": "For test the EmailScheduler.",
+    "body": "For test the EmailScheduler.\nFor test the EmailScheduler.\nFor test the EmailScheduler.\nFor test the EmailScheduler.",
+    "time": "2025-07-24 11:15 PM"
+  }
+]
